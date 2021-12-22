@@ -1,1 +1,2 @@
-# StatComp21055
+# StatComp
+An R package for 'StatComp' course

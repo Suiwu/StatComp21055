@@ -1,0 +1,213 @@
+---
+title: "Introduction to StatComp21055"
+author: "兰敬国 SA21229031"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to StatComp21055}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+__StatComp21055__ 是统计计算课程的期末`R`包。 它主要包括包括三个部分:
+
++ 首先是关于shapes data 的一些统计量的计算，包括均值计算、回归估计和模型选择(决定系数$R^2$)。
+
++ 第二是几个有关变量选择的一些批量化处理函数，方便平时跑模拟。大致分为3个部分: 数据生成，指标计算和画图输出。
+
++ 第三是平时作业汇总(见`homework.html`)
+
+
+## shapes data
+
+shapes data就是形状数据。我们想做的事情是, 比如大脑某些结构的形状, 比较常用的表示方式是坐标法, 在轮廓边缘取一些点来刻画形状(landmark法)。
+
+我们想研究的是响应变量是shape data的情景下, 把欧氏空间的一些方法推广过来。
+比如对一组大脑患有疾病的患者,我们想研究大脑某个部位的形状与患者的性别、年龄、病情是否有关，以此确定该疾病是否会影响大脑的某个部位，进而制定相应策略医治。
+
+我们通过两张图来加深了解:
+
+<center class="half">
+    <img src=./brain.png width=30% /> 
+    <img src=./mice.png width=32% />
+</center>
+
+
+
+brains 数据集  
+
++ 形状数据: brains$x      24\*3\*58
++ 年龄:   brains$age
++ 性别:   brains$sex   (1 for male /  2 for female)
++ 组别:   brains$grp
+
+```{r}
+library(StatComp21055)
+library(bestsubset)
+library(BB)
+library(glmnet)
+library(shapes)
+library(frechet)
+data("brains")
+## 以年龄、性别和组别作为预测变量
+X=cbind(brains$age,brains$grp,brains$sex)[1:10,]
+Y=brains$x[,,1:10]
+## 预览一下shapes data 的样子
+print(Y[,,1])
+```
+
+### 计算一下均值
+```{r}
+Fm=Fmean(Y)
+Fm
+```
+
+### 回归估计
+```{r}
+## 预测一下自变量是X[1,]处的Y值
+yhat=FREShape(Y,X,X[1,])
+
+cbind(Y[,,1],yhat)
+
+```
+
+### 模型估计
+
+针对不同的预测变量我们可以建立不同的模型，所以需要有个指标衡量哪个模型更好。能从欧氏空间借鉴的是决定系数($R^2$)或者调整后的决定系数($adj-R^2$)。决定系数越大说明模型拟合效果越好。
+
+```{r}
+r2=R2(Y,X)
+r2
+```
+
+
+## 变量选择
+
+这部分主要是变量选择的批处理函数的使用。
+
+### 生成模拟数据
+
+```{r}
+n=30
+p=8
+support.size=5
+dat=sim.data(n,p,support.size)
+dat
+```
+
+
+### 生成数据 计算一些常用指标 并保存
+
+```{r}
+methods=c("Lasso","Forward stepwise","Relaxed lasso")
+rho.vec =c(0.35)
+beta.type = 1
+snr.vec = exp(seq(log(0.05),log(6),length=5))
+file.list=compute.index(n,p,nval=5,methods = methods,file=NULL,rho.vec=rho.vec,snr.vec=snr.vec,beta.type = beta.type)
+
+```
+
+
+### 画图输出
+
+#### risk
+
+```{r}
+library(ggplot2)
+#file.list = system(paste0("./data/rd/sim.n",n,".p",p,".*.rds"),intern=TRUE)
+method.nums = c(1,2,3)
+
+rho = 0.35
+
+## risk
+plot_index(file.list, what="risk",method.nums=c(1,2,3), method.names=methods,
+               make.pdf=FALSE,fig.dir=NULL,file.name="risk", h=4, w=4)
+```
+
+
+#### error
+
+```{r}
+plot_index(file.list, what="error",method.nums=c(1,2,3), method.names=methods,
+               make.pdf=FALSE,fig.dir=".",file.name="error", h=4, w=4)
+```
+
+
+#### nonzero
+
+```{r}
+plot_index(file.list, what="nonzero",method.nums=c(1,2,3), method.names=methods,
+               make.pdf=FALSE,fig.dir=".",file.name="nonzero", h=4, w=4)
+```
+
+
+#### F
+
+```{r}
+plot_index(file.list, what="F",method.nums=c(1,2,3), method.names=methods,
+               make.pdf=FALSE,fig.dir=".",file.name="F", h=4, w=4)
+```
+
+#### Prop
+```{r}
+plot_index(file.list, what="prop",method.nums=c(1,2,3), method.names=methods,
+               make.pdf=FALSE,fig.dir=".",file.name="prop", h=4, w=4)
+```
+
+
+## Rcpp程序与R程序比较
+
+考虑二元随机变量$X=(X_1,X_2)$, 密度函数:
+$$
+f(x, y) \propto\left(\begin{array}{l}
+n \\
+x
+\end{array}\right) y^{x+a-1}(1-y)^{n-x+b-1}, \quad x=0,1, \ldots, n, 0 \leq y \leq 1
+$$
+
+用Gibbs采样法分别在`R`与`C`中运行, 比较一下效率
+
+### GibbsR
+
+```{r}
+a=1
+b=1
+n=25
+N=10000
+
+X=gibbsR(a,b,n,N)
+plot(X[,1],X[,2],xlab = "x",ylab = "y",main = "gibbsR")
+```
+
+
+### GibbsC
+
+```{r}
+Xc=gibbsC(a,b,n,N)
+plot(Xc[,1],Xc[,2],xlab = "x",ylab = "y",main="gibbsC")
+```
+
+用`qqplot`比较一下产生的随机变量是否一致
+
+```{r}
+qqplot(X[,1],Xc[,1],xlab = "gibbsR",ylab = "gibbsC",main="第1维变量QQ图")
+abline(0,1,col = "red")
+
+qqplot(X[,2],Xc[,2], xlab = "gibbsR",ylab = "gibbsC",main="第2维变量QQ图")
+abline(0,1,col = "red")
+```
+
+
+比较运行时间
+```{r}
+library(microbenchmark)
+ts=microbenchmark(gibbR=gibbsR(a,b,n,N), gibbC=gibbsC(a,b,n,N))
+summary(ts)[,c(1,3,5,6)]
+```
+
+
+
+
+
