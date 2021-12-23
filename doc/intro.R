@@ -44,7 +44,6 @@ file.list=compute.index(n,p,nval=5,methods = methods,file=NULL,rho.vec=rho.vec,s
 
 ## -----------------------------------------------------------------------------
 library(ggplot2)
-#file.list = system(paste0("./data/rd/sim.n",n,".p",p,".*.rds"),intern=TRUE)
 method.nums = c(1,2,3)
 
 rho = 0.35

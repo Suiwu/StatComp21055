@@ -36,6 +36,21 @@ shapes data就是形状数据。比如大脑某些结构的形状, 比较常用�
 
 
 
+### 算法步骤:
+
+
++ $\bar{X}=n^{-1} \sum_{i=1}^{n} X_{i}$ , $\hat{\Sigma}=n^{-1} \sum_{i=1}^{n}\left(X_{i}-\bar{X}\right)\left(X_{i}-\bar{X}\right)^{T}$,
+
++ $s_{i n}(x):=1+\left(X_{i}-\bar{X}\right)^{T} \hat{\Sigma}^{-1}(x-\bar{X})$
+
++ $M_{n}(\cdot, x)=n^{-1} \sum_{i=1}^{n} s_{i n}(x) d^{2}\left(Y_{i}, \omega\right)$.
+
++ $\hat{m}_{\oplus}(x)=\underset{\omega \in \Omega}{\operatorname{argmin}} M_{n}(\omega, x)$
+
+
+
+
+
 brains 数据集  
 
 + 形状数据: brains$x      24\*3\*58
@@ -58,13 +73,19 @@ Y=brains$x[,,1:10]
 print(Y[,,1])
 ```
 
+
+
+
+
 ### 计算一下均值
 ```{r}
 Fm=Fmean(Y)
 Fm
 ```
 
+
 ### 回归估计
+
 ```{r}
 ## 预测一下自变量是X[1,]处的Y值
 yhat=FREShape(Y,X,X[1,])
@@ -76,6 +97,17 @@ cbind(Y[,,1],yhat)
 ### 模型估计
 
 针对不同的预测变量我们可以建立不同的模型，所以需要有个指标衡量哪个模型更好。能从欧氏空间借鉴的是决定系数($R^2$)或者调整后的决定系数($adj-R^2$)。决定系数越大说明模型拟合效果越好。
+
+
++ 欧式空间: $R^{2}=1-\frac{\operatorname{Var}\left(Y-\beta_{0}^{*}-\left(\beta_{1}^{*}\right)^{T}(X-\mu)\right)}{\operatorname{Var}(Y)}$
+
++ Shapes 空间: $R_{\oplus}^{2}:=1-\frac{E\left[d^{2}\left(Y, m_{\oplus}(X)\right)\right]}{V_{\oplus}}$
+
++ $\hat{R}_{\oplus}^{2}=1-\frac{\sum_{i=1}^{n} d^{2}\left(Y_{i}, \hat{m}_{\oplus}\left(X_{i}\right)\right)}{\sum_{i=1}^{n} d^{2}\left(Y_{i}, \hat{\omega}_{\oplus}\right)}$
+
++ 调整R方: $\hat{R}_{\oplus, \mathrm{adj}}^{2}(\mathcal{M})=\hat{R}_{\oplus}^{2}-\left(1-\hat{R}_{\oplus}^{2}\right) \frac{q}{n-q-1}$
+
++ 模型选择: $q^{*}=\underset{1 \leq q \leq p}{\operatorname{argmax}} \max _{\mathcal{M} \in \mathcal{C}_{q}} \hat{R}_{\oplus, \text { adj }}^{2}(\mathcal{M})$
 
 ```{r}
 r2=R2(Y,X)
