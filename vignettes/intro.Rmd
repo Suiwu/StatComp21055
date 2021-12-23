@@ -22,7 +22,7 @@ __StatComp21055__ 是统计计算课程的期末`R`包。 它主要包括包括�
 
 ## shapes data
 
-shapes data就是形状数据。我们想做的事情是, 比如大脑某些结构的形状, 比较常用的表示方式是坐标法, 在轮廓边缘取一些点来刻画形状(landmark法)。
+shapes data就是形状数据。比如大脑某些结构的形状, 比较常用的表示方式是坐标法, 在轮廓边缘取一些点来刻画形状(landmark法)。
 
 我们想研究的是响应变量是shape data的情景下, 把欧氏空间的一些方法推广过来。
 比如对一组大脑患有疾病的患者,我们想研究大脑某个部位的形状与患者的性别、年龄、病情是否有关，以此确定该疾病是否会影响大脑的某个部位，进而制定相应策略医治。
@@ -100,6 +100,20 @@ dat
 
 ### 生成数据 计算一些常用指标 并保存
 
+变量选择有很多中算法。比如: Lasso`、Relaxed lasso、Forward stepwise、MCP、L0Learn、abess等等。
+
+不过不同的算法基本是不同作者提出的，他们各自写R包，函数的输入参数、输出样式可能会不一样。我通过增加中间转换函数，把它们的输入输出格式调整成一致。同时计算了一些指标，衡量不同算法的指标。
+
++ Relative risk
+
++ Relative test error: 预期的测试误差/Bayes 误差
+
++ F-score(综合查全率与查准率，衡量模型选择准确程度)
+
++ Proportion of variance explained(可解释方差所占比例，越大越好)
+
++ Number of nonzeros(非零系数个数，用于与真实情形比较)
+
 ```{r}
 methods=c("Lasso","Forward stepwise","Relaxed lasso")
 rho.vec =c(0.35)
@@ -112,11 +126,12 @@ file.list=compute.index(n,p,nval=5,methods = methods,file=NULL,rho.vec=rho.vec,s
 
 ### 画图输出
 
+可以指定要比较的算法和要比较的指标，同时可以选择是否输出pdf。
+
 #### risk
 
 ```{r}
 library(ggplot2)
-#file.list = system(paste0("./data/rd/sim.n",n,".p",p,".*.rds"),intern=TRUE)
 method.nums = c(1,2,3)
 
 rho = 0.35
